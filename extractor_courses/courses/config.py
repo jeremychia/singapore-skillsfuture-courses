@@ -14,3 +14,13 @@ BIGQUERY_TABLES = {
     "featured_initiatives": "sg_skillsfuture.featured_initiatives",
     "skillsfuture_initiatives": "sg_skillsfuture.skillsfuture_initiatives",
 }
+PRIMARY_KEYS = {
+    "courses": ["course_reference_number"],
+    "training_areas": ["course_reference_number", "area_of_training_id"],
+    "languages": ["course_reference_number", "language_of_instruction"],
+    "featured_initiatives": ["course_reference_number", "featured_initiatives_tag"],
+    "skillsfuture_initiatives": [
+        "course_reference_number",
+        "skillsfuture_initiatives_tag",
+    ],
+}

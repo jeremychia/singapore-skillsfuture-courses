@@ -5,7 +5,7 @@ from datetime import datetime
 import pandas as pd
 import pandas_gbq
 from courses.api_client import fetch_course_data
-from courses.config import BIGQUERY_TABLES, PROJECT_ID, QUERY_ROWS
+from courses.config import BIGQUERY_TABLES, PRIMARY_KEYS, PROJECT_ID, QUERY_ROWS
 from courses.data_processing import parse_response_to_dataframes
 
 
@@ -64,6 +64,33 @@ def main(start_row_arg=0):
             project_id=PROJECT_ID,
             if_exists="append",
         )
+
+    # Deduplicate the tables
+    for table_name in BIGQUERY_TABLES:
+        try:
+            df = pandas_gbq.read_gbq(BIGQUERY_TABLES[table_name], project_id=PROJECT_ID)
+
+            before_dedup_rows = len(df)
+
+            df = df.sort_values(by="_accessed_at", ascending=False)
+            df_deduped = df.drop_duplicates(
+                subset=PRIMARY_KEYS[table_name], keep="first"
+            )
+
+            after_dedup_rows = len(df_deduped)
+
+            pandas_gbq.to_gbq(
+                dataframe=df_deduped,
+                destination_table=BIGQUERY_TABLES[table_name],
+                project_id=PROJECT_ID,
+                if_exists="replace",
+            )
+
+            print(
+                f"Table {BIGQUERY_TABLES[table_name]}: Before {before_dedup_rows} rows, After {after_dedup_rows} rows. Deduplication complete."
+            )
+        except Exception as e:
+            print(f"Error processing table {BIGQUERY_TABLES[table_name]}: {e}")
 
 
 if __name__ == "__main__":
