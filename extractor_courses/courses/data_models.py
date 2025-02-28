@@ -2,15 +2,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
-
-def parse_iso8601(date_str: str) -> Optional[datetime]:
-    """Parses an ISO 8601 date string into a datetime object."""
-    try:
-        return datetime.fromisoformat(date_str)
-    except (ValueError, TypeError):
-        return None
-
-
 @dataclass
 class CourseInfo:
     course_uuid: str
@@ -33,12 +24,8 @@ class CourseInfo:
         return CourseInfo(
             course_uuid=course_dict.get("groupValue", ""),
             course_reference_number=course_data.get("Course_Ref_No", ""),
-            course_created_date=parse_iso8601(
-                course_data.get("Course_Created_Date", "")
-            ),
-            course_nearest_start_date=parse_iso8601(
-                course_data.get("Course_Start_Date_Nearest", "")
-            ),
+            course_created_date=course_data.get("Course_Created_Date", ""),
+            course_nearest_start_date=course_data.get("Course_Start_Date_Nearest", ""),
             course_funding_method=course_data.get("Course_Funding", ""),
             quality_count_respondents=course_data.get(
                 "Course_Quality_NumberOfRespondents", ""
