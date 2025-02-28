@@ -2,8 +2,9 @@ import os
 import time
 
 import pandas as pd
+import pandas_gbq
 from course_details.api_utils import fetch_course_details
-from course_details.config import CHUNK_SIZE
+from course_details.config import CHUNK_SIZE, PRIMARY_KEY, PROJECT_ID
 from course_details.data_parsing import (
     parse_course_details,
     parse_course_runs,
@@ -102,3 +103,30 @@ if __name__ == "__main__":
         upload_to_gbq(job_roles_df, "sg_skillsfuture.job_roles")
         upload_to_gbq(mode_of_trainings_df, "sg_skillsfuture.mode_of_trainings")
         upload_to_gbq(course_runs_df, "sg_skillsfuture.course_runs")
+
+    for table_path in PRIMARY_KEY:
+        try:
+            df = pandas_gbq.read_gbq(table_path, project_id=PROJECT_ID)
+
+            before_dedup_rows = len(df)
+
+            df = df.sort_values(by="_accessed_at", ascending=False)
+            df_deduped = df.drop_duplicates(
+                subset=PRIMARY_KEY[table_path], keep="first"
+            )
+
+            after_dedup_rows = len(df_deduped)
+
+            pandas_gbq.to_gbq(
+                dataframe=df_deduped,
+                destination_table=table_path,
+                project_id=PROJECT_ID,
+                if_exists="replace",
+            )
+
+            print(
+                f"Table {table_path}: Before {before_dedup_rows} rows, After {after_dedup_rows} rows. Deduplication complete."
+            )
+
+        except Exception as e:
+            print(f"Error processing table {table_path}: {e}")
