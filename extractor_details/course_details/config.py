@@ -2,7 +2,7 @@
 PROJECT_ID = "jeremy-chia"
 BASE_URL = "https://www.myskillsfuture.gov.sg/services/tex/individual/course-detail"
 COURSE_DETAIL_URL_TEMPLATE = "https://www.myskillsfuture.gov.sg/content/portal/en/training-exchange/course-directory/course-detail.html?courseReferenceNumber={}"
-CHUNK_SIZE = 1000
+CHUNK_SIZE = 100
 PRIMARY_KEY = {
     "sg_skillsfuture.course_details": ["course_reference_number"],
     "sg_skillsfuture.trainers": ["course_run_id", "trainer_id_number", "trainer_uuid"],

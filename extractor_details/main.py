@@ -1,3 +1,4 @@
+import argparse
 import os
 import time
 
@@ -82,51 +83,74 @@ def get_all_courses_data(course_reference_numbers):
     )
 
 
+def main():
+    parser = argparse.ArgumentParser(description="Process SkillsFuture course data.")
+    parser.add_argument(
+        "--start_from_course",
+        type=str,
+        default=None,
+        help="Course reference number to start processing from.",
+    )
+    args = parser.parse_args()
+
+    start_from_course_reference_number = args.start_from_course
+
+    try:
+        # Set Google Cloud credentials
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "tokens/gcp_token.json"
+
+        course_reference_numbers = get_course_reference_numbers(
+            start_from_course_reference_number
+        )
+        course_reference_numbers_list = chunk_list(course_reference_numbers, CHUNK_SIZE)
+
+        for course_references in course_reference_numbers_list:
+            (
+                course_details_df,
+                trainers_df,
+                job_roles_df,
+                mode_of_trainings_df,
+                course_runs_df,
+            ) = get_all_courses_data(course_references)
+
+            upload_to_gbq(course_details_df, "sg_skillsfuture.course_details")
+            upload_to_gbq(trainers_df, "sg_skillsfuture.trainers")
+            upload_to_gbq(job_roles_df, "sg_skillsfuture.job_roles")
+            upload_to_gbq(mode_of_trainings_df, "sg_skillsfuture.mode_of_trainings")
+            upload_to_gbq(course_runs_df, "sg_skillsfuture.course_runs")
+
+    except Exception as e:
+        print(f"Error during data processing: {e}")
+
+    finally:
+        # Deduplication should always run
+        for table_path in PRIMARY_KEY:
+            try:
+                df = pandas_gbq.read_gbq(table_path, project_id=PROJECT_ID)
+
+                before_dedup_rows = len(df)
+
+                df = df.sort_values(by="_accessed_at", ascending=False)
+                df_deduped = df.drop_duplicates(
+                    subset=PRIMARY_KEY[table_path], keep="first"
+                )
+
+                after_dedup_rows = len(df_deduped)
+
+                pandas_gbq.to_gbq(
+                    dataframe=df_deduped,
+                    destination_table=table_path,
+                    project_id=PROJECT_ID,
+                    if_exists="replace",
+                )
+
+                print(
+                    f"Table {table_path}: Before {before_dedup_rows} rows, After {after_dedup_rows} rows. Deduplication complete."
+                )
+
+            except Exception as e:
+                print(f"Error processing table {table_path}: {e}")
+
+
 if __name__ == "__main__":
-    # Set Google Cloud credentials
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "tokens/gcp_token.json"
-
-    course_reference_numbers = get_course_reference_numbers()
-    course_reference_numbers_list = chunk_list(course_reference_numbers, CHUNK_SIZE)
-
-    for course_references in course_reference_numbers_list:
-        (
-            course_details_df,
-            trainers_df,
-            job_roles_df,
-            mode_of_trainings_df,
-            course_runs_df,
-        ) = get_all_courses_data(course_references)
-
-        upload_to_gbq(course_details_df, "sg_skillsfuture.course_details")
-        upload_to_gbq(trainers_df, "sg_skillsfuture.trainers")
-        upload_to_gbq(job_roles_df, "sg_skillsfuture.job_roles")
-        upload_to_gbq(mode_of_trainings_df, "sg_skillsfuture.mode_of_trainings")
-        upload_to_gbq(course_runs_df, "sg_skillsfuture.course_runs")
-
-    for table_path in PRIMARY_KEY:
-        try:
-            df = pandas_gbq.read_gbq(table_path, project_id=PROJECT_ID)
-
-            before_dedup_rows = len(df)
-
-            df = df.sort_values(by="_accessed_at", ascending=False)
-            df_deduped = df.drop_duplicates(
-                subset=PRIMARY_KEY[table_path], keep="first"
-            )
-
-            after_dedup_rows = len(df_deduped)
-
-            pandas_gbq.to_gbq(
-                dataframe=df_deduped,
-                destination_table=table_path,
-                project_id=PROJECT_ID,
-                if_exists="replace",
-            )
-
-            print(
-                f"Table {table_path}: Before {before_dedup_rows} rows, After {after_dedup_rows} rows. Deduplication complete."
-            )
-
-        except Exception as e:
-            print(f"Error processing table {table_path}: {e}")
+    main()

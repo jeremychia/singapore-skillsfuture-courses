@@ -4,12 +4,13 @@ import pandas_gbq
 from course_details.config import PROJECT_ID
 
 
-def get_course_reference_numbers():
-    sql = """
-    SELECT DISTINCT course_reference_number
-    FROM `jeremy-chia.sg_skillsfuture.courses`
-    ORDER BY course_reference_number
-    """
+def get_course_reference_numbers(start_from_course_reference_number=None):
+    sql = """SELECT DISTINCT course_reference_number FROM `jeremy-chia.sg_skillsfuture.courses`"""
+    if start_from_course_reference_number:
+        sql += (
+            f" WHERE course_reference_number >= '{start_from_course_reference_number}'"
+        )
+    sql += " ORDER BY course_reference_number"
     return list(
         pandas_gbq.read_gbq(sql, project_id=PROJECT_ID)["course_reference_number"]
     )
