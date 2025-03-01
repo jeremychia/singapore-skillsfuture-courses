@@ -102,10 +102,23 @@ with
             = training_areas.course_reference_number
         left join trainers on course_runs.course_run_id = trainers.course_run_id
 
+    ),
+
+    calculations as (
+        select
+            *,
+            date_diff(
+                course_run_start_date, registration_end_date, day
+            ) as days_registration_end_2_course_start,
+            date_diff(
+                registration_end_date, registration_start_date, day
+            ) as days_registration_start2end
+        from joined
+
     )
 
 select *
-from joined
+from calculations
 order by course_reference_number desc, course_run_id
 """
 
