@@ -52,6 +52,15 @@ with
             = 1
     ),
 
+    trainers as (
+        select
+            course_run_id,
+            array_agg(distinct coalesce(trainer_uuid, "")) as trainer_uuids,
+            count(distinct trainer_uuid) as count_trainers_with_info,
+        from `jeremy-chia.sg_skillsfuture.trainers`
+        group by all
+    ),
+
     course as (
         select course_reference_number, training_partner_uen, training_partner_name
         from `jeremy-chia.sg_skillsfuture.courses`
@@ -80,6 +89,9 @@ with
             course.training_partner_uen,
             course.training_partner_name,
 
+            trainers.trainer_uuids,
+            coalesce(trainers.count_trainers_with_info, 0) as count_trainers_with_info,
+
         from course_runs
         left join
             course
@@ -88,6 +100,7 @@ with
             training_areas
             on course_runs.course_reference_number
             = training_areas.course_reference_number
+        left join trainers on course_runs.course_run_id = trainers.course_run_id
 
     )
 
