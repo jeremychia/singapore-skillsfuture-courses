@@ -31,6 +31,7 @@ with
                 end as float64
             ) as quality_rating_out_of_5,
             training_partner_uen,
+            training_partner_name,
             _accessed_at
         from `jeremy-chia.sg_skillsfuture.courses`
     ),
@@ -149,6 +150,7 @@ with
             courses.quality_rating_out_of_5,
 
             courses.training_partner_uen,
+            courses.training_partner_name,
 
             initiatives.initiatives_tags,
 
