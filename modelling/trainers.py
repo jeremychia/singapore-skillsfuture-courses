@@ -174,10 +174,55 @@ with
             summarise_training_partners
             on trainer_profile.trainer_uuid = summarise_training_partners.trainer_uuid
 
+    ),
+
+    calculate_year_of_birth as (
+        select
+            *,
+            case
+                -- for NRICs starting with 'S', only 1968 and onwards has the number
+                when
+                    length(trainer_id_number) = 9
+                    and upper(trainer_id_number) like 'S%'
+                    and safe_cast(substr(trainer_id_number, 2, 2) as int) >= 68
+                then concat('19', substr(trainer_id_number, 2, 2))
+                -- NRICs starting with 'T' is for 2000 and after
+                when
+                    length(trainer_id_number) = 9 and upper(trainer_id_number) like 'T%'
+                then concat('20', substr(trainer_id_number, 2, 2))
+            end as year_of_birth
+        from joined
+    ),
+
+    calculate_age as (
+        select
+            *,
+            case
+                when year_of_birth is not null
+                then
+                    cast(
+                        cast(extract(year from current_date()) as int)
+                        - cast(year_of_birth as int) as string
+                    )
+                when
+                    trainer_id_number like 'S%'
+                    and safe_cast(substr(trainer_id_number, 2, 2) as int) < 68
+                then
+                    concat(
+                        cast(
+                            cast(extract(year from current_date()) as int)
+                            - 1967 as string
+                        ),
+                        " or older"
+                    )
+                else "Unknown"
+            end as age,
+
+        from calculate_year_of_birth
     )
 
 select *
-from joined
+from calculate_age
 order by count_areas_of_training desc
 
 
