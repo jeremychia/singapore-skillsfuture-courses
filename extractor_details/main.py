@@ -14,6 +14,7 @@ from course_details.data_parsing import (
     parse_trainers,
 )
 from course_details.database_utils import get_course_reference_numbers, upload_to_gbq
+from course_details.preflight import run_preflight
 
 
 def chunk_list(input_list, chunk_size=1000):
@@ -91,9 +92,25 @@ def main():
         default=None,
         help="Course reference number to start processing from.",
     )
+    parser.add_argument(
+        "--skip-preflight",
+        action="store_true",
+        help="Skip preflight checks.",
+    )
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="Run preflight checks only without processing data.",
+    )
     args = parser.parse_args()
 
     start_from_course_reference_number = args.start_from_course
+
+    # Run preflight checks
+    if not args.skip_preflight:
+        run_preflight(exit_on_failure=not args.preflight_only)
+        if args.preflight_only:
+            return
 
     try:
         # Set Google Cloud credentials

@@ -7,6 +7,7 @@ import pandas_gbq
 from courses.api_client import fetch_course_data
 from courses.config import BIGQUERY_TABLES, PRIMARY_KEYS, PROJECT_ID, QUERY_ROWS
 from courses.data_processing import parse_response_to_dataframes
+from courses.preflight import run_preflight
 
 
 def main(start_row_arg=0):
@@ -103,6 +104,23 @@ if __name__ == "__main__":
         default=0,
         help="Starting row number for data retrieval.",
     )
+    parser.add_argument(
+        "--skip-preflight",
+        action="store_true",
+        help="Skip preflight checks.",
+    )
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="Run preflight checks only without processing data.",
+    )
     args = parser.parse_args()
+
+    # Run preflight checks
+    if not args.skip_preflight:
+        run_preflight(exit_on_failure=not args.preflight_only)
+        if args.preflight_only:
+            print("Preflight checks completed. Exiting.")
+            exit(0)
 
     main(args.start_row)
